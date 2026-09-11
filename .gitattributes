@@ -1,0 +1,11 @@
+vids/bigbuckbunny/4k/bbb_sunflower_2160p_30fps_normal.mp4 filter=lfs diff=lfs merge=lfs -text
+vids/bigbuckbunny/4k/bbb_sunflower_2160p_30fps_stereo_abl.mp4 filter=lfs diff=lfs merge=lfs -text
+vids/bigbuckbunny/4k/bbb_sunflower_2160p_60fps_normal.mp4 filter=lfs diff=lfs merge=lfs -text
+vids/synctests/AVSync_23.98fps_2160p.mov filter=lfs diff=lfs merge=lfs -text
+vids/synctests/AVSync_24.00fps_2160p.mov filter=lfs diff=lfs merge=lfs -text
+vids/synctests/AVSync_25.00fps_2160p.mov filter=lfs diff=lfs merge=lfs -text
+vids/synctests/AVSync_29.97fps_2160p.mov filter=lfs diff=lfs merge=lfs -text
+vids/synctests/AVSync_50.00fps_1080p.mov filter=lfs diff=lfs merge=lfs -text
+vids/synctests/AVSync_50.00fps_2160p.mov filter=lfs diff=lfs merge=lfs -text
+vids/synctests/AVSync_59.94fps_1080p.mov filter=lfs diff=lfs merge=lfs -text
+vids/synctests/AVSync_59.94fps_2160p.mov filter=lfs diff=lfs merge=lfs -text
