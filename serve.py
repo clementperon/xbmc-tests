@@ -75,6 +75,14 @@ class RangeRequestHandler(http.server.SimpleHTTPRequestHandler):
         return f
 
     def copyfile(self, source, outputfile):
+        # Kodi drops the connection on every seek outside its read buffer, so a
+        # client disconnect mid-transfer is routine, not an error.
+        try:
+            self._copy_range(source, outputfile)
+        except (BrokenPipeError, ConnectionResetError):
+            self.log_message("client closed connection early: %s", self.path)
+
+    def _copy_range(self, source, outputfile):
         remaining = getattr(self, "_range_remaining", None)
         if remaining is None:
             return super().copyfile(source, outputfile)
