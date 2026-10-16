@@ -9,3 +9,4 @@ vids/synctests/AVSync_50.00fps_1080p.mov filter=lfs diff=lfs merge=lfs -text
 vids/synctests/AVSync_50.00fps_2160p.mov filter=lfs diff=lfs merge=lfs -text
 vids/synctests/AVSync_59.94fps_1080p.mov filter=lfs diff=lfs merge=lfs -text
 vids/synctests/AVSync_59.94fps_2160p.mov filter=lfs diff=lfs merge=lfs -text
+vids/hdr10plus/hdr10plus_test_lake_2021_02_01.mp4 filter=lfs diff=lfs merge=lfs -text
