@@ -10,10 +10,13 @@ can navigate bigbuckbunny/jellyfish/sintel -> format -> resolution and play
 any file directly, or add the whole tree as a source.
 """
 import argparse
+import html
 import http.server
+import io
 import os
 import re
 import socket
+import urllib.parse
 from pathlib import Path
 
 DEFAULT_DIR = Path(__file__).parent / "vids"
@@ -23,6 +26,44 @@ RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)")
 
 class RangeRequestHandler(http.server.SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler with HTTP Range support, needed for Kodi to seek."""
+
+    def list_directory(self, path):
+        # Kodi reads sizes from the HTML listing; Python's default listing only
+        # includes names, which Kodi displays as zero-byte files.
+        try:
+            entries = sorted(Path(path).iterdir(), key=lambda entry: entry.name.lower())
+        except OSError:
+            self.send_error(404, "No permission to list directory")
+            return None
+
+        title = html.escape(urllib.parse.unquote(self.path))
+        rows = []
+        for entry in entries:
+            try:
+                is_dir = entry.is_dir()
+                size = "-" if is_dir else f"{entry.stat().st_size} B"
+            except OSError:
+                continue  # A file may disappear while the directory is listed.
+            name = entry.name + ("/" if is_dir else "")
+            href = urllib.parse.quote(name, errors="surrogatepass")
+            rows.append(
+                f'<tr><td><a href="{href}">{html.escape(name)}</a></td>'
+                f'<td align="right">{size}</td></tr>'
+            )
+
+        body = (
+            '<!DOCTYPE HTML>\n<html><head><meta charset="utf-8">'
+            f'<title>Directory listing for {title}</title></head>\n'
+            f'<body><h1>Directory listing for {title}</h1>\n'
+            '<table><tr><th>Name</th><th>Size</th></tr>\n'
+            + "\n".join(rows)
+            + '\n</table></body></html>\n'
+        ).encode("utf-8", errors="xmlcharrefreplace")
+        self.send_response(200)
+        self.send_header("Content-type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        return io.BytesIO(body)
 
     def send_head(self):
         path = self.translate_path(self.path)
