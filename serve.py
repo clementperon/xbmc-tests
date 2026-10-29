@@ -90,13 +90,10 @@ class RangeRequestHandler(http.server.SimpleHTTPRequestHandler):
         file_len = fs.st_size
         start, end = 0, file_len - 1
 
-        range_header = self.headers.get("Range")
-        if range_header:
-            m = RANGE_RE.fullmatch(range_header.strip())
-            if not m or not any(m.groups()):  # "bytes=-" has neither bound.
-                self.send_error(416, "Invalid Range header")
-                f.close()
-                return None
+        # Ranges we don't support (multipart, malformed, "bytes=-") are ignored
+        # and the whole file is served, as RFC 9110 allows.
+        m = RANGE_RE.fullmatch(self.headers.get("Range", "").strip())
+        if m and any(m.groups()):
             s, e = m.groups()
             if s:
                 start = int(s)
@@ -131,7 +128,7 @@ class RangeRequestHandler(http.server.SimpleHTTPRequestHandler):
         # client disconnect mid-transfer is routine, not an error.
         try:
             self._copy_range(source, outputfile)
-        except (BrokenPipeError, ConnectionResetError):
+        except ConnectionError:
             self.log_message("client closed connection early: %s", self.path)
 
     def _copy_range(self, source, outputfile):
@@ -170,16 +167,15 @@ def main() -> None:
         def __init__(self, *a, **kw):
             super().__init__(*a, directory=serve_dir, **kw)
 
-    httpd = http.server.ThreadingHTTPServer(("0.0.0.0", args.port), Handler)
-
-    ip = local_ip()
-    print(f"Serving {serve_dir}")
-    print(f"Point Kodi to: http://{ip}:{args.port}/  (or http://localhost:{args.port}/ if Kodi runs on this machine)")
-    print("Press Ctrl+C to stop.")
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        pass
+    with http.server.ThreadingHTTPServer(("0.0.0.0", args.port), Handler) as httpd:
+        ip = local_ip()
+        print(f"Serving {serve_dir}")
+        print(f"Point Kodi to: http://{ip}:{args.port}/  (or http://localhost:{args.port}/ if Kodi runs on this machine)")
+        print("Press Ctrl+C to stop.")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            pass
 
 
 if __name__ == "__main__":
