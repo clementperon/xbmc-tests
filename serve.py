@@ -66,15 +66,26 @@ class RangeRequestHandler(http.server.SimpleHTTPRequestHandler):
         return io.BytesIO(body)
 
     def send_head(self):
+        # Handlers are reused across keep-alive requests; don't let a previous
+        # file's range length truncate this response.
+        self._range_remaining = None
         path = self.translate_path(self.path)
         if os.path.isdir(path):
             return super().send_head()
-        if not os.path.exists(path):
+
+        try:
+            f = open(path, "rb")
+        except OSError:
             self.send_error(404, "File not found")
             return None
+        try:
+            return self._send_file_head(f, path)
+        except BaseException:
+            f.close()
+            raise
 
+    def _send_file_head(self, f, path):
         ctype = self.guess_type(path)
-        f = open(path, "rb")
         fs = os.fstat(f.fileno())
         file_len = fs.st_size
         start, end = 0, file_len - 1
@@ -82,7 +93,7 @@ class RangeRequestHandler(http.server.SimpleHTTPRequestHandler):
         range_header = self.headers.get("Range")
         if range_header:
             m = RANGE_RE.fullmatch(range_header.strip())
-            if not m:
+            if not m or not any(m.groups()):  # "bytes=-" has neither bound.
                 self.send_error(416, "Invalid Range header")
                 f.close()
                 return None
